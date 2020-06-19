@@ -1,0 +1,12 @@
+.idea/
+.pytest_cache/
+.ipynb_checkpoints/
+
+repo/dist/
+*.egg-info
+
+.dvc/
+.git/
+
+data/
+*.csv

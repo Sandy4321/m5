@@ -1,0 +1,20 @@
+data_dir: 'C:\\Users\\LEEKI2\\PycharmProjects\\m5\\data\\'
+
+cat_static: ['item_id', 'dept_id', 'cat_id', 'store_id', 'state_id']
+cat_seq: ['weekday', 'wday', 'month', 'year', 'event_name_1', 'event_type_1', 'event_name_2', 'event_type_2', 'snap_CA', 'snap_TX', 'snap_WI']
+n_class: []
+embd_size: []
+con: ['sell_price', 'demand']
+
+val_start: '2016-01-01'
+in_steps: 36
+out_steps: 28
+
+seed: 1234
+epoch: 5
+patience: 2
+lr: 0.001
+bs: 512
+batch_normalization: False
+hidden: 256
+layer: 1
