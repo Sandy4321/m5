@@ -1,7 +1,10 @@
 import copy
 import time
-import torch
+
 import numpy as np
+import wandb
+import torch
+
 from rcnn.model import RCNN, device
 
 
@@ -60,7 +63,7 @@ class Trainer:
 
     def fit(self, train_loader, valid_loader, writer=None):
         if writer:
-            writer.watch(self.model, log='all')
+            wandb.watch(self.model, log='all', log_freq=50)
 
         for i in range(self.cfg['epoch']):
             total_train_loss = 0
@@ -96,16 +99,16 @@ class Trainer:
             print('epoch %d/%d training loss: %f / validation loss: %f (%d sec)' % (
                 i + 1, self.cfg['epoch'], train_loss, val_loss, time_spent))
             if writer:
-                writer.log({f"train_loss": self.early_stopping.best_train_loss,
-                            f"val_loss": self.early_stopping.best_val_loss,
-                            f"best_epoch": self.early_stopping.best_epoch})
+                wandb.log({f"train_loss": self.early_stopping.best_train_loss,
+                           f"val_loss": self.early_stopping.best_val_loss,
+                           f"best_epoch": self.early_stopping.best_epoch})
 
             self.early_stopping(train_loss, val_loss, self.model)
             if self.early_stopping.early_stop:
                 break
 
         if writer:
-            writer.unwatch(self.model)
+            wandb.unwatch(self.model)
         self.model.load_state_dict(self.early_stopping.best_model.state_dict())
         print(f'Loading best model checkpoint at epoch {self.early_stopping.best_epoch}')
         return self.model

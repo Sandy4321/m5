@@ -2,8 +2,8 @@ import random
 import time
 import pandas as pd
 import numpy as np
-import torch
 from sklearn.preprocessing import LabelEncoder
+import torch
 
 
 def set_seed(seed):
