@@ -24,11 +24,12 @@ class RCNN(nn.Module):
 
         self.lstm_encoder = nn.LSTM(
             input_size=sum(cfg['embd_size'][n_cat_static:]) + len(cfg['con']),
-            hidden_size=cfg['hidden'], num_layers=cfg['layer'], batch_first=True
+            hidden_size=cfg['hidden'],
+            num_layers=cfg['layer'], batch_first=True
         )
-        self.lstm_decoder = nn.LSTM(
-            input_size=sum(cfg['embd_size'][n_cat_static:]) + len(cfg['con']) + 1,
-            hidden_size=cfg['hidden'], num_layers=cfg['layer'], batch_first=True
+        self.lstm_decoder = nn.LSTMCell(
+            input_size=sum(cfg['embd_size'][n_cat_static:]) + len(cfg['con']),
+            hidden_size=cfg['hidden']
         )
 
         self.fc = nn.Sequential(
@@ -41,7 +42,6 @@ class RCNN(nn.Module):
 
     def forward(self, x, x_seq):
         self.lstm_encoder.flatten_parameters()
-        self.lstm_decoder.flatten_parameters()
         bs = x.size(0)
         n_cat_seq = len(self.cfg['cat_seq'])
         in_steps = self.cfg['in_steps']
@@ -66,17 +66,18 @@ class RCNN(nn.Module):
 
         encoder_in = x_seq[:, :in_steps, :]
         encoder_out, (hn, cn) = self.lstm_encoder(encoder_in)
-        decoder_in = x_seq[:, in_steps:, :-1].clone().detach()
+        hn = hn[-1, :, :].view(bs, self.cfg['hidden'])
+        cn = cn[-1, :, :].view(bs, self.cfg['hidden'])
+
         outputs = []
+        decoder_in = x_seq[:, in_steps:, :-1].clone().detach()
         for i in range(self.cfg['out_steps']):
             if i == 0:
                 step_decoder_in = torch.cat([decoder_in[:, i, :], encoder_in[:, -1, -1:]], dim=1)
             else:
                 step_decoder_in = torch.cat([decoder_in[:, i, :], out], dim=1)
-            step_decoder_in = step_decoder_in.view(bs, 1, -1)
-            decoder_out, (hn, cn) = self.lstm_decoder(step_decoder_in, (hn, cn))
-            hiddens = hn[-1, :, :].view(bs, self.cfg['hidden'])
-            out = torch.cat([x, hiddens], dim=1)
+            (hn, cn) = self.lstm_decoder(step_decoder_in, (hn, cn))
+            out = torch.cat([x, hn], dim=1)
             out = self.fc(out)
             outputs.append(out)
 
