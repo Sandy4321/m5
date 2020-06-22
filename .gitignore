@@ -1,6 +1,7 @@
 .idea/
 .pytest_cache/
 .ipynb_checkpoints/
+__pycache__/
 
 repo/dist/
 *.egg-info
