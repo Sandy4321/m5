@@ -27,7 +27,7 @@ class RCNN(nn.Module):
             hidden_size=cfg['hidden'], num_layers=cfg['layer'], batch_first=True
         )
         self.lstm_decoder = nn.LSTM(
-            input_size=cfg['hidden'],
+            input_size=sum(cfg['embd_size'][n_cat_static:]) + len(cfg['con']) + 1,
             hidden_size=cfg['hidden'], num_layers=cfg['layer'], batch_first=True
         )
 
@@ -66,18 +66,15 @@ class RCNN(nn.Module):
 
         encoder_in = x_seq[:, :in_steps, :]
         encoder_out, (hn, cn) = self.lstm_encoder(encoder_in)
-        hiddens = hn[-1, :, :].view(bs, self.cfg['hidden'])
-        if self.verbose: print('hiddens:   ', hiddens.size())
-
-        out = torch.cat([x, hiddens], dim=1)
-        out = self.fc(out)
-
-        outputs = [out]
-        for i in range(self.cfg['out_steps'] - 1):
-            decoder_in = x_seq.clone().detach()
-            decoder_in[:, in_steps, -1:] = out
-            in_steps += 1
-            decoder_out, (hn, cn) = self.lstm_encoder(decoder_in[:, :in_steps, :], (hn, cn))
+        decoder_in = x_seq[:, in_steps:, :-1].clone().detach()
+        outputs = []
+        for i in range(self.cfg['out_steps']):
+            if i == 0:
+                step_decoder_in = torch.cat([decoder_in[:, i, :], encoder_in[:, -1, -1:]], dim=1)
+            else:
+                step_decoder_in = torch.cat([decoder_in[:, i, :], out], dim=1)
+            step_decoder_in = step_decoder_in.view(bs, 1, -1)
+            decoder_out, (hn, cn) = self.lstm_decoder(step_decoder_in, (hn, cn))
             hiddens = hn[-1, :, :].view(bs, self.cfg['hidden'])
             out = torch.cat([x, hiddens], dim=1)
             out = self.fc(out)
